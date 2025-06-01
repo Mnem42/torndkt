@@ -11,12 +11,11 @@ env:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --release --verbose; cp target/release/torndkt.exe
     - name: Run tests
       run: cargo test --verbose
