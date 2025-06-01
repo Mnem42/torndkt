@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --release --verbose; cp target/release/torndkt.exe
     - name: Run tests
       run: cargo test --verbose
+    - name: Rustdoc
+      run: cargo doc --no-deps
