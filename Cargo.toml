@@ -1,0 +1,16 @@
+[package]
+name = "torndkt"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+reqwest = "0.12.15"
+tokio = { version = "1.45.1", features = ["rt", "rt-multi-thread", "macros"] }
+torn-api = "1.4.0"
+serde = "1.0.219"
+chrono = "0.4.41"
+eframe = { version = "0.31.1", features = ["persistence"] }
+egui_extras = "0.31.1"
+futures = "0.3.31"
+serde_json = "1.0.140"
+uniquevec = "0.1.0"
