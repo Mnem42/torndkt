@@ -4,16 +4,14 @@ mod persistence;
 
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
-use torn_api::{request::{models::{UserRequest}, IntoRequest}};
+use torn_api::request::IntoRequest;
 use futures::executor;
 use eframe::{egui, Storage};
 use eframe::egui::{Button};
-use eframe::egui::ImageFit::Exact;
-use eframe::egui::Key::Period;
 use eframe::emath::Vec2;
 use egui_extras::{Column, TableBuilder};
 use uniquevec::UniqueVec;
-use crate::api::{get_player_info, GetInfoError, PlayerInfo};
+use crate::api::{GetInfoError};
 use crate::persistence::PersistedData;
 use crate::util::to_hms;
 
@@ -43,7 +41,7 @@ impl Default for ExampleApp{
 
 impl ExampleApp {
     fn name() -> &'static str {
-        "torndkt"
+        "torndkt v0.1.0"
     }
 
     fn init(&mut self){
@@ -57,12 +55,6 @@ impl ExampleApp {
 
     async fn update_torn(&mut self) -> Result<(),GetInfoError> {
         for i in self.ids.clone() {
-            let req = UserRequest::builder()
-                .api_key_public(self.apikey.clone())
-                .id(i.to_string())
-                .build()
-                .into_request();
-
             let resp = self.update_hosp_time(i).await?;
 
             let hosp_datetime = DateTime::from_timestamp(

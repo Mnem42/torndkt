@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
@@ -6,6 +8,7 @@ use torn_api::request::{ApiRequest, IntoRequest};
 use torn_api::request::models::UserRequest;
 use crate::ExampleApp;
 
+/// Player info response
 #[derive(Deserialize, Serialize, Debug,  PartialEq, Clone)]
 pub struct PlayerInfo {
     pub name: String,
@@ -14,23 +17,41 @@ pub struct PlayerInfo {
     pub states: HashMap<String, i64>,
 }
 
+/// Type that can be either a number or a string
 #[derive(Deserialize, Serialize, Debug, Clone, PartialOrd, PartialEq)]
-enum NumOrString{
+pub enum NumOrString{
     Num(i64),
     String(String)
 }
 
+/// Response for an access error
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct AccessErrorStructure{
     pub error: HashMap<String, NumOrString>
 }
 
+/// Error returned when attempting to send a tornapi request
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum GetInfoError{
     InvalidId,
     WrongKey,
     Other(u8)
 }
-pub async fn get_player_info<RJT: DeserializeOwned>(req: &ApiRequest, section: &str) -> Result<RJT, ()> {
+
+impl Display for GetInfoError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self{
+            GetInfoError::InvalidId => write!(f, "Invalid Id"),
+            GetInfoError::WrongKey => write!(f, "Wrong Key"),
+            GetInfoError::Other(x) => write!(f, "Other API error: {}", x),
+        }
+    }
+}
+impl Error for GetInfoError {}
+
+/// Get the information for a player. Generic, and errors should be checked in
+/// calling code.
+pub(self) async fn get_player_info<RJT: DeserializeOwned>(req: &ApiRequest, section: &str) -> Result<RJT, ()> {
     let mut start = "https://api.torn.com/v2/".to_string();
 
     start.push_str(section);
