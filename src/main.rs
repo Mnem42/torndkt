@@ -1,17 +1,24 @@
+#![cfg_attr(
+    all(
+        target_os = "windows",
+        not(debug_assertions),
+    ),
+    windows_subsystem = "windows"
+)]
+
 mod api;
 mod util;
 mod persistence;
 
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
-use torn_api::request::IntoRequest;
 use futures::executor;
 use eframe::{egui, Storage};
 use eframe::egui::{Button};
 use eframe::emath::Vec2;
 use egui_extras::{Column, TableBuilder};
 use uniquevec::UniqueVec;
-use crate::api::{GetInfoError};
+use crate::api::api::GetInfoError;
 use crate::persistence::PersistedData;
 use crate::util::to_hms;
 
@@ -117,7 +124,7 @@ impl eframe::App for ExampleApp {
                             Ok(_) => (),
                             Err(x) => {match x{
                                 GetInfoError::WrongKey => self.errmodal_open = true,
-                                GetInfoError::InvalidId => (),
+                                GetInfoError::InvalidId => {},
                                 GetInfoError::Other(x) =>  println!("Error: {:?}", x),
                             }}
                         }
@@ -183,9 +190,9 @@ fn main() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_always_on_top()
             .with_maximize_button(false)
-            .with_inner_size(Vec2::new(268.0,150.0))
             .with_max_inner_size(Vec2::new(268.5, 1000.0))
-            .with_min_inner_size(Vec2::new(267.5, 0.0)),
+            .with_min_inner_size(Vec2::new(267.5, 0.0))
+            .with_inner_size(Vec2::new(268.0,150.0)),
         ..eframe::NativeOptions::default()
     };
 

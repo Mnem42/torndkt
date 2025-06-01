@@ -19,25 +19,27 @@ pub struct PlayerInfo {
 
 /// Type that can be either a number or a string
 #[derive(Deserialize, Serialize, Debug, Clone, PartialOrd, PartialEq)]
+#[serde(untagged)]
 pub enum NumOrString{
     Num(i64),
     String(String)
 }
 
 /// Response for an access error
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct AccessErrorStructure{
     pub error: HashMap<String, NumOrString>
 }
 
 /// Error returned when attempting to send a tornapi request
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Copy, Clone)]
 pub enum GetInfoError{
     InvalidId,
     WrongKey,
     Other(u8)
 }
 
+// Make it usable as an error
 impl Display for GetInfoError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self{
@@ -76,15 +78,19 @@ pub(self) async fn get_player_info<RJT: DeserializeOwned>(req: &ApiRequest, sect
 }
 
 impl ExampleApp {
+    /// Update the hospitalisation timestamp map
     pub async fn update_hosp_time(&mut self, id: u32) -> Result<PlayerInfo, GetInfoError> {
+        // Make the request string
         let req = UserRequest::builder()
             .api_key_public(self.apikey.clone())
             .id(id.to_string())
             .build()
             .into_request();
 
+        // Get the normal info
         let resp = get_player_info::<PlayerInfo>(&req.1, "user").await;
 
+        // If that's what was sent, parse and collect
         if let Ok(x) = resp {
             let hosp_datetime = DateTime::from_timestamp(
                 x.states["hospital_timestamp"],
@@ -95,6 +101,7 @@ impl ExampleApp {
             Ok(x.clone())
         }
         else{
+            // If it's actually an error, figure out what it is and propogate
             if let Ok(x) = get_player_info::<AccessErrorStructure>(&req.1, "user").await{
                 match x.error["code"]{
                     NumOrString::Num(code) => {match code{
@@ -105,6 +112,7 @@ impl ExampleApp {
                     _ => panic!("Should not get here!")
                 }
             }
+            // If it reaches here, there's something wrong
             else{
                 panic!("Should not get here!");
             }
