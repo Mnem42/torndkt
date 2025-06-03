@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-use torn_api::request::{ApiRequest, IntoRequest};
+use torn_api::request::{ApiRequest, ApiResponse, IntoRequest};
 use torn_api::request::models::UserRequest;
 use crate::ExampleApp;
 
@@ -67,8 +67,6 @@ pub(self) async fn get_player_info<RJT: DeserializeOwned>(req: &ApiRequest, sect
 
     let ret = reqwest::get(&start).await.unwrap();
 
-    println!("{:?}", ret);
-
     if let Ok(x) = ret.json::<RJT>().await {
         Ok(x)
     }
@@ -101,7 +99,7 @@ impl ExampleApp {
             Ok(x.clone())
         }
         else{
-            // If it's actually an error, figure out what it is and propogate
+            // If it's actually an error, figure out what it is and propagate
             if let Ok(x) = get_player_info::<AccessErrorStructure>(&req.1, "user").await{
                 match x.error["code"]{
                     NumOrString::Num(code) => {match code{
@@ -116,6 +114,33 @@ impl ExampleApp {
             else{
                 panic!("Should not get here!");
             }
+        }
+    }
+}
+
+pub async fn run_request<R: DeserializeOwned + Clone>(request: &ApiRequest) -> Result<R, GetInfoError>{
+    // Get the normal info
+    let resp = get_player_info::<R>(request, "user").await;
+
+    // If that's what was sent, parse and collect
+    if let Ok(x) = resp {
+        Ok(x.clone())
+    }
+    else{
+        // If it's actually an error, figure out what it is and propagate
+        if let Ok(x) = get_player_info::<AccessErrorStructure>(request, "user").await{
+            match x.error["code"]{
+                NumOrString::Num(code) => {match code{
+                    6 => Err(GetInfoError::InvalidId),
+                    2 => Err(GetInfoError::WrongKey),
+                    x => Err(GetInfoError::Other(x as u8))
+                }}
+                _ => panic!("Should not get here!")
+            }
+        }
+        // If it reaches here, there's something wrong
+        else{
+            panic!("Should not get here!");
         }
     }
 }

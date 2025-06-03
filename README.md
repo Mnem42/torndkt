@@ -6,7 +6,7 @@ A desktop tool for torn, mainly designed for ranked warring
 
 ### Windows
 
-1. Select a release. Using the most recent one is reccomended.
+1. Select a release. Using the most recent one is recommended.
 2. Download the .exe file
 3. Ideally, put the .exe file in its own folder. This is so that the persistence
    file doesn't end up getting mixed up.

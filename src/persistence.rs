@@ -3,11 +3,12 @@ use std::fmt::{Display, Formatter};
 use std::io::{Read, Write};
 use serde::{Deserialize, Serialize};
 use crate::ExampleApp;
+use crate::monitors::selection::MonitorList;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PersistedData{
-    pub tracked_player_list: Vec<u32>,
-    pub api_key: String
+    pub api_key: String,
+    pub monitors: Vec<MonitorList>
 }
 
 #[derive(Debug)]
@@ -46,13 +47,13 @@ impl PersistedData{
         let mut buf = String::new();
         file.read_to_string(&mut buf)?;
 
-        Ok(serde_json::from_str::<PersistedData>(&*buf)?)
+        Ok(serde_json::from_str::<PersistedData>(&buf)?)
     }
 
     pub fn save(&self, filename: &str) -> Result<(), PersistenceError>{
         let mut file = std::fs::File::create(filename)?;
 
-        file.write(serde_json::to_string(&*self)?.as_bytes())?;
+        file.write_all(serde_json::to_string(self)?.as_bytes())?;
         Ok(())
     }
 }
@@ -60,8 +61,8 @@ impl PersistedData{
 impl From<ExampleApp> for PersistedData{
     fn from(value: ExampleApp) -> Self {
         Self{
-            tracked_player_list: value.ids.to_vec(),
-            api_key: value.apikey
+            api_key: value.apikey,
+            monitors: value.monitors
         }
     }
 }
@@ -69,8 +70,8 @@ impl From<ExampleApp> for PersistedData{
 impl From<&ExampleApp> for PersistedData{
     fn from(value: &ExampleApp) -> Self {
         Self{
-            tracked_player_list: value.ids.to_vec().clone(),
-            api_key: value.apikey.clone()
+            api_key: value.apikey.clone(),
+            monitors: value.monitors.clone(),
         }
     }
 }

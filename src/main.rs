@@ -9,25 +9,28 @@
 mod api;
 mod util;
 mod persistence;
+pub mod monitors;
 
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use futures::executor;
-use eframe::{egui, Storage};
-use eframe::egui::{Button};
-use eframe::emath::Vec2;
-use egui_extras::{Column, TableBuilder};
-use uniquevec::UniqueVec;
 use crate::api::api::GetInfoError;
+use crate::monitors::basic::SimpleHospMonitor;
+use crate::monitors::core::{Monitor};
+use crate::monitors::selection::MonitorList;
 use crate::persistence::PersistedData;
-use crate::util::to_hms;
+use chrono::{DateTime, Utc};
+use eframe::emath::Vec2;
+use eframe::{egui, Storage};
+use futures::executor;
+use std::collections::HashMap;
+use uniquevec::UniqueVec;
 
 struct ExampleApp {
     hosp_map: HashMap<String, DateTime<Utc>>,
+
+    monitors: Vec<MonitorList>,
     idselbuf: String,
     ids: UniqueVec<u32>,
     uiscale: f32,
-    apikey: String,
+    pub apikey: String,
     errmodal_open: bool,
     first_update: bool
 }
@@ -41,7 +44,8 @@ impl Default for ExampleApp{
             apikey: String::new(),
             uiscale: 1.5,
             errmodal_open: false,
-            first_update: true
+            first_update: true,
+            monitors: vec![],
         }
     }
 }
@@ -91,23 +95,11 @@ impl eframe::App for ExampleApp {
         }
 
         self.first_update = false;
-        let win = egui::Window::new("API key error")
+        let _ = egui::Window::new("API key error")
             .open(&mut self.errmodal_open)
             .collapsible(false)
             .resizable(false);
-
-        win.show(ctx, |ui| {
-            ui.centered_and_justified( |ui| {
-                ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                    ui.set_height(50.0);
-                    ui.label("API key is not valid");
-
-                    ui.collapsing("More information", |ui| {
-                        ui.label(format!("API key entered: {}", self.apikey))
-                    });
-                });
-            });
-        });
+        
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
@@ -130,47 +122,36 @@ impl eframe::App for ExampleApp {
                         }
                     })());
 
+                    for i in &mut self.monitors{
+                        i.update_torn(&self.apikey);
+                    }
                 };
 
-                ui.label("ID to add:");
+                let mut selected = MonitorList::None;
 
-                ui.add(egui::TextEdit::singleline(&mut self.idselbuf).char_limit(8).desired_width(60.0));
+                egui::ComboBox::from_label("")
+                    .selected_text(format!("{:?}", selected))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut selected, MonitorList::None, " ");
+                        ui.selectable_value(&mut selected, MonitorList::Simple(SimpleHospMonitor::default()), "Simple monitor");
+                    }
+                    );
 
-                self.idselbuf = self.idselbuf.chars().filter(|x| x.is_numeric()).collect();
-
-                if ui.add(Button::new("Add user").min_size(Vec2::new(30.0,0.0))).clicked(){
-                    println!("{}",self.idselbuf);
-                    self.ids.push(self.idselbuf.parse().unwrap());
+                if selected !=  MonitorList::None{
+                    match selected {
+                        MonitorList::None => {}
+                        MonitorList::Simple(x) => {self.monitors.push(MonitorList::Simple(x))},
+                    }
                 }
             });
 
-            let table = TableBuilder::new(ui);
+            ui.separator();
 
-            table
-                .column(Column::auto().resizable(true).at_least(90.0))
-                .column(Column::remainder())
-                .header(15.0, |mut header| {
-                    header.col(|ui| {
-                        ui.heading("User");
-                    });
-                    header.col(|ui| {
-                        ui.heading("Time to exit hosp");
-                    });
-                })
-                .body(|mut body| {
-                    self.hosp_map.iter().for_each( |x|
-                        body.row(15.0, |mut row| {
-                            row.col(|ui| {
-                                ui.label(x.0);
-                            });
-                            row.col(|ui| {
-                                let time_gap = x.1.timestamp() - Utc::now().timestamp();
-
-                                ui.label(to_hms(time_gap.clamp(0, i64::MAX)));
-                            });
-                        })
-                    );
-                });
+            ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                for i in &mut self.monitors{
+                    i.update(ui, ctx);
+                }
+            });
 
         });
     }
@@ -182,7 +163,6 @@ fn main() -> eframe::Result<()> {
 
     // If error, do nothing. Otherwise, actually use the data
     if let Ok(x) = result{
-        app.ids = x.tracked_player_list.into();
         app.apikey = x.api_key;
     }
 
