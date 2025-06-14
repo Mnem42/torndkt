@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
@@ -53,7 +53,7 @@ impl Error for GetInfoError {}
 
 /// Get the information for a player. Generic, and errors should be checked in
 /// calling code.
-pub(self) async fn get_player_info<RJT: DeserializeOwned>(req: &ApiRequest, section: &str) -> Result<RJT, ()> {
+pub(self) async fn get_player_info<RJT: DeserializeOwned + Debug>(req: &ApiRequest, section: &str) -> Result<RJT, ()> {
     let mut start = "https://api.torn.com/v2/".to_string();
 
     start.push_str(section);
@@ -68,6 +68,7 @@ pub(self) async fn get_player_info<RJT: DeserializeOwned>(req: &ApiRequest, sect
     let ret = reqwest::get(&start).await.unwrap();
 
     if let Ok(x) = ret.json::<RJT>().await {
+        println!("{:#?}",x);
         Ok(x)
     }
     else{
@@ -118,7 +119,7 @@ impl ExampleApp {
     }
 }
 
-pub async fn run_request<R: DeserializeOwned + Clone>(request: &ApiRequest) -> Result<R, GetInfoError>{
+pub async fn run_request<R: DeserializeOwned + Clone + Debug>(request: &ApiRequest) -> Result<R, GetInfoError>{
     // Get the normal info
     let resp = get_player_info::<R>(request, "user").await;
 
@@ -135,12 +136,12 @@ pub async fn run_request<R: DeserializeOwned + Clone>(request: &ApiRequest) -> R
                     2 => Err(GetInfoError::WrongKey),
                     x => Err(GetInfoError::Other(x as u8))
                 }}
-                _ => panic!("Should not get here!")
+                _ => unreachable!()
             }
         }
         // If it reaches here, there's something wrong
         else{
-            panic!("Should not get here!");
+            unreachable!()
         }
     }
 }

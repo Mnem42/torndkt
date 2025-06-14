@@ -62,8 +62,6 @@ impl ExampleApp {
                 Err(_) => {self.errmodal_open = true;}
             }
         });
-
-        println!("{:#?}",self.monitors);
     }
 
     async fn update_torn(&mut self) -> Result<(),GetInfoError> {

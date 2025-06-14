@@ -23,9 +23,9 @@ pub struct SimpleHospMonitor{
     #[serde(skip_serializing, skip_deserializing)]
     hosp_timestamp:  DateTime<Utc>,
 
-    /// Internal flag for if there was an api error
+    /// Internal flag for api errors
     #[serde(skip_serializing, skip_deserializing)]
-    errored: bool,
+    id_error: bool,
 
     /// Torn API key. Stored internally for error messages
     #[serde(skip_serializing, skip_deserializing)]
@@ -41,7 +41,7 @@ impl Default for SimpleHospMonitor{
         SimpleHospMonitor{
             id: 0,
             hosp_timestamp:  Utc::now(),
-            errored: false,
+            id_error: false,
             apikey: String::new(),
             name: String::new()
         }
@@ -58,24 +58,6 @@ struct ApiResponse {
 
 impl Monitor for SimpleHospMonitor{
     fn update(&mut self, container: &mut Ui, ctx: &egui::Context) {
-        let win = egui::Window::new("API key error")
-            .open(&mut self.errored)
-            .collapsible(false)
-            .resizable(false);
-
-        win.show(ctx, |ui| {
-            // Error modal
-            ui.centered_and_justified( |ui| {
-                ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
-                    ui.set_height(50.0);
-                    ui.label("API key is not valid");
-
-                    ui.collapsing("More information", |ui| {
-                        ui.label(format!("API key entered: {}", self.apikey))
-                    });
-                });
-            });
-        });
 
         // Strip for layouting
         StripBuilder::new(container)
@@ -88,7 +70,13 @@ impl Monitor for SimpleHospMonitor{
 
                 // UI edittext
                 strip.cell(|ui| {
-                    ui.add(egui::text_edit::TextEdit::singleline(&mut input));
+                    if self.id_error{
+                        ui.style_mut().visuals.extreme_bg_color =  Color32::from_rgb(255, 0, 0);
+                    }
+
+                    let textedit = ui.text_edit_singleline(&mut input);
+
+                    textedit.on_hover_text(if self.id_error {"ID doesn't exist"} else {"ID to query"});
                 });
 
                 input = input.chars()
@@ -113,24 +101,8 @@ impl Monitor for SimpleHospMonitor{
 
                 // Col 2: Time left in hospital
                 strip.cell(|ui| {
-
-                    if self.hosp_timestamp.timestamp() == 0 {
-                        ui.style_mut().visuals.override_text_color = Some(Color32::from_rgb(255, 0, 0));
-                        let lbl = ui.label(format!("ETA: {}", to_hms(time_diff.ceil() as i64)));
-
-                        lbl.on_hover_ui(|ui| {
-                            ui.label("\
-                                Internal timestamp exactly 0. This is probably because data\
-                                hasn't been reloaded, or the id doesn't exist.\
-                            ");
-                        });
-                    }
-                    else {
-                        let lbl = ui.label(format!("ETA: {}", to_hms(time_diff.ceil() as i64)));
-                        lbl.on_hover_ui(|ui| {
-                            ui.label("Time to leave hospital");
-                        });
-                    }
+                    let lbl = ui.label(format!("ETA: {}", to_hms(time_diff.ceil() as i64)));
+                    lbl.on_hover_text("Time to leave hospital");
                 });
 
                 // Col 3: Username
@@ -149,16 +121,29 @@ impl Monitor for SimpleHospMonitor{
             .build()
             .into_request().1;
 
-        let resp: ApiResponse = executor::block_on(run_request(&built))?;
+        let resp: Result<ApiResponse, _> = executor::block_on(run_request(&built));
 
-        let hosp_datetime = DateTime::from_timestamp(
-            resp.states["hospital_timestamp"],
-            0
-        ).unwrap();
+        match resp {
+            Ok(resp) => {
+                let hosp_datetime = DateTime::from_timestamp(
+                    resp.states["hospital_timestamp"],
+                    0
+                ).unwrap();
 
-        self.hosp_timestamp = hosp_datetime;
-        self.name = resp.name;
+                self.hosp_timestamp = hosp_datetime;
+                self.name = resp.name;
 
-        Ok(())
+                Ok(())
+            }
+            Err(x) => {
+                match x {
+                    GetInfoError::InvalidId => {self.id_error = true;}
+                    GetInfoError::WrongKey => {}
+                    GetInfoError::Other(_) => {}
+                }
+
+                Err(x)
+            }
+        }
     }
 }
