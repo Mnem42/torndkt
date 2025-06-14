@@ -47,6 +47,8 @@ impl PersistedData{
         let mut buf = String::new();
         file.read_to_string(&mut buf)?;
 
+        println!("{:?}", serde_json::from_str::<PersistedData>(&buf)?);
+
         Ok(serde_json::from_str::<PersistedData>(&buf)?)
     }
 

@@ -56,12 +56,14 @@ impl ExampleApp {
     }
 
     fn init(&mut self){
-        executor::block_on((async || {
+        executor::block_on(async {
             match self.update_torn().await{
                 Ok(_) => (),
                 Err(_) => {self.errmodal_open = true;}
             }
-        })());
+        });
+
+        println!("{:#?}",self.monitors);
     }
 
     async fn update_torn(&mut self) -> Result<(),GetInfoError> {
@@ -148,6 +150,7 @@ impl eframe::App for ExampleApp {
             ui.separator();
 
             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                ui.set_height(20.0);
                 for i in &mut self.monitors{
                     i.update(ui, ctx);
                 }
@@ -164,6 +167,7 @@ fn main() -> eframe::Result<()> {
     // If error, do nothing. Otherwise, actually use the data
     if let Ok(x) = result{
         app.apikey = x.api_key;
+        app.monitors = x.monitors;
     }
 
     let native_options = eframe::NativeOptions {
