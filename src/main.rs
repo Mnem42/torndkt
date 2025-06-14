@@ -52,7 +52,7 @@ impl Default for ExampleApp{
 
 impl ExampleApp {
     fn name() -> &'static str {
-        "torndkt v0.1.0"
+        "torndkt v0.2.0"
     }
 
     fn init(&mut self){
