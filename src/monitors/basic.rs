@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use eframe::egui;
-use eframe::egui::{Align, Color32, Label, Layout, Ui};
+use eframe::egui::{Color32, Ui};
 use egui_extras::{Size, StripBuilder};
 use futures::executor;
 use serde::{Deserialize, Serialize};
@@ -57,8 +57,7 @@ struct ApiResponse {
 }
 
 impl Monitor for SimpleHospMonitor{
-    fn update(&mut self, container: &mut Ui, ctx: &egui::Context) {
-
+    fn update(&mut self, container: &mut Ui, _ctx: &egui::Context) {
         // Strip for layouting
         StripBuilder::new(container)
             .size(Size::exact(60.0)) // Col 1: UI edittext

@@ -53,7 +53,7 @@ impl Error for GetInfoError {}
 
 /// Get the information for a player. Generic, and errors should be checked in
 /// calling code.
-pub(self) async fn get_player_info<RJT: DeserializeOwned + Debug>(req: &ApiRequest, section: &str) -> Result<RJT, ()> {
+async fn get_player_info<RJT: DeserializeOwned>(req: &ApiRequest, section: &str) -> Result<RJT, ()> {
     let mut start = "https://api.torn.com/v2/".to_string();
 
     start.push_str(section);
@@ -68,7 +68,6 @@ pub(self) async fn get_player_info<RJT: DeserializeOwned + Debug>(req: &ApiReque
     let ret = reqwest::get(&start).await.unwrap();
 
     if let Ok(x) = ret.json::<RJT>().await {
-        println!("{:#?}",x);
         Ok(x)
     }
     else{
@@ -119,7 +118,7 @@ impl ExampleApp {
     }
 }
 
-pub async fn run_request<R: DeserializeOwned + Clone + Debug>(request: &ApiRequest) -> Result<R, GetInfoError>{
+pub async fn run_request<R: DeserializeOwned + Clone>(request: &ApiRequest) -> Result<R, GetInfoError>{
     // Get the normal info
     let resp = get_player_info::<R>(request, "user").await;
 
