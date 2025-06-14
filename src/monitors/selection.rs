@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use eframe::egui;
 use eframe::egui::{Context, Ui};
 use serde::{Deserialize, Serialize};
 use crate::api::api::GetInfoError;
@@ -28,9 +29,11 @@ impl Display for MonitorList {
 }
 
 impl Monitor for MonitorList{
-    fn update(&mut self, container: &mut Ui, ctx: &Context) {
+    fn update<F,C>(&mut self, caller_ref: &mut C, container: &mut Ui, ctx: &Context, close_cb: F)
+        where F: FnOnce(&mut C)
+    {
         match self{
-            MonitorList::Simple(x) => {x.update(container, ctx);},
+            MonitorList::Simple(x) => {x.update(caller_ref, container, ctx, close_cb);},
             MonitorList::None => {}
         }
     }

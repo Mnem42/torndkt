@@ -87,7 +87,7 @@ impl eframe::App for ExampleApp {
     }
 
     #[tokio::main]
-    async fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    async fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(self.uiscale);
 
         if self.first_update {
@@ -147,14 +147,17 @@ impl eframe::App for ExampleApp {
 
             ui.separator();
 
-            ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                ui.set_height(20.0);
-                for i in &mut self.monitors{
-                    i.update(ui, ctx);
+            egui::Grid::new("detrep_month_det")
+                .spacing(egui::Vec2::new(10.0, 2.0))
+                .striped(false)
+                .show(ui, |ui| {
+                for mut i in self.monitors.clone(){
+                    i.update(self, ui, ctx, |x: &mut Self| println!("test (key): {}", x.apikey));
+                    ui.end_row();
                 }
             });
-
         });
+        ctx.request_repaint();
     }
 }
 
@@ -172,9 +175,8 @@ fn main() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_always_on_top()
             .with_maximize_button(false)
-            .with_max_inner_size(Vec2::new(268.5, 1000.0))
-            .with_min_inner_size(Vec2::new(267.5, 0.0))
-            .with_inner_size(Vec2::new(268.0,150.0)),
+            .with_min_inner_size(Vec2::new(332.0, 150.0))
+            .with_inner_size(Vec2::new(3320.0, 150.0)),
         ..eframe::NativeOptions::default()
     };
 

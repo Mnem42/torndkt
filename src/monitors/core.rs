@@ -8,7 +8,8 @@ use crate::api::api::GetInfoError;
 /// anything to enforce it.
 pub trait Monitor: Serialize + DeserializeOwned{
     /// Run on each egui update
-    fn update(&mut self, container: &mut Ui, ctx: &egui::Context);
+    fn update<F, C>(&mut self, caller_ref: &mut C, container: &mut Ui, ctx: &egui::Context, close_cb: F)
+        where F: FnOnce(&mut C);
 
     /// Update tornapi data
     fn update_torn(&mut self, apikey: &str) -> Result<(), GetInfoError>;

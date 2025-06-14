@@ -57,14 +57,16 @@ struct ApiResponse {
 }
 
 impl Monitor for SimpleHospMonitor{
-    fn update(&mut self, container: &mut Ui, _ctx: &egui::Context) {
+    fn update<F, C>(&mut self, caller_ref: &mut C, container: &mut Ui, _ctx: &egui::Context, close_cb: F)
+        where F:  FnOnce(&mut C)
+    {
         // Strip for layouting
         StripBuilder::new(container)
             .size(Size::exact(60.0)) // Col 1: UI edittext
             .size(Size::exact(90.0)) // Col 2: Time left in hospital
-            .size(Size::remainder()) // Col 3: The username
+            .size(Size::exact(130.0)) // Col 3: The username
+            .size(Size::exact(30.0)) // Col 4: close button
             .horizontal(|mut strip| {
-
                 let mut input = self.id.to_string();
 
                 // UI edittext
@@ -108,6 +110,13 @@ impl Monitor for SimpleHospMonitor{
                 strip.cell(|ui| {
                     ui.label(self.name.clone());
                 });
+
+                // Col 4: close button
+                strip.cell(|ui| {
+                    if ui.button("x").clicked() {
+                        close_cb(caller_ref);
+                    }
+                })
             });
     }
 
